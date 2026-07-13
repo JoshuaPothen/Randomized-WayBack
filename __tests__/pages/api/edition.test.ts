@@ -1,5 +1,5 @@
 import { createMocks } from 'node-mocks-http';
-import handler, { withOneRetry } from '../edition';
+import handler, { withOneRetry } from '../../../pages/api/edition';
 import { assembleEdition } from '../../../lib/assemble';
 
 jest.mock('../../../lib/assemble');

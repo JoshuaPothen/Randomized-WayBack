@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import Home from '../index';
+import Home from '../../pages/index';
 
 describe('Home page', () => {
   afterEach(() => {
