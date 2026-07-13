@@ -4,13 +4,20 @@ import { DOMAIN_POOL } from '../../lib/domains';
 import { fetchRandomCapture } from '../../lib/cdx';
 import type { CdxRecord, WaybackItem } from '../../lib/types';
 
-export async function withOneRetry<T>(fn: () => Promise<T | null>): Promise<T | null> {
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// A transient network hiccup (Wi-Fi blip, router connection-table churn) often
+// hasn't cleared by the time an immediate retry fires. Wait briefly first.
+export async function withOneRetry<T>(fn: () => Promise<T | null>, retryDelayMs = 300): Promise<T | null> {
   try {
     const result = await fn();
     if (result !== null) return result;
   } catch (err) {
     console.warn('[withOneRetry] first attempt threw, retrying once', err);
   }
+  await delay(retryDelayMs);
   try {
     return await fn();
   } catch (err) {

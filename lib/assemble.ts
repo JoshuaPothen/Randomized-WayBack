@@ -58,7 +58,7 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
   const oversampleCount = options.oversampleCount ?? 25;
   const targetMax = options.targetMax ?? 20;
   const midCount = options.midCount ?? 5;
-  const concurrencyLimit = options.concurrencyLimit ?? 6;
+  const concurrencyLimit = options.concurrencyLimit ?? 3;
 
   const domains = Array.from({ length: oversampleCount }, () => pickRandomDomain(options.domainPool));
   const candidates = await mapWithConcurrencyLimit(domains, concurrencyLimit, async (domain) => {

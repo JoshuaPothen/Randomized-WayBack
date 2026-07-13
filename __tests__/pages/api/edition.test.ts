@@ -15,14 +15,21 @@ describe('withOneRetry', () => {
 
   it('retries once after a null result and returns the retry value', async () => {
     const fn = jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce('ok');
-    expect(await withOneRetry(fn)).toBe('ok');
+    expect(await withOneRetry(fn, 0)).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it('retries once after a thrown error, then returns null if it fails again', async () => {
     const fn = jest.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(null);
-    expect(await withOneRetry(fn)).toBeNull();
+    expect(await withOneRetry(fn, 0)).toBeNull();
     expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits retryDelayMs before retrying', async () => {
+    const fn = jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce('ok');
+    const start = Date.now();
+    await withOneRetry(fn, 50);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(50);
   });
 });
 
