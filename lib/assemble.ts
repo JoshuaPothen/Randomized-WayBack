@@ -15,6 +15,8 @@ export interface AssembleOptions {
   oversampleCount?: number;
   targetMax?: number;
   midCount?: number;
+  blockedDomains?: string[];
+  blockedUrlSubstrings?: string[];
 }
 
 function captureYear(timestamp: string): number {
@@ -42,13 +44,15 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
       try {
         const record = await deps.fetchCapture(domain);
         if (!record) return null;
-        if (isBlocked(record.original, domain)) return null;
+
+        const capturedHost = new URL(record.original).hostname;
+        if (isBlocked(record.original, capturedHost, options.blockedDomains, options.blockedUrlSubstrings)) return null;
 
         const html = await deps.fetchCaptureHtml(record);
         if (!html) return null;
         if (!passesQualityFilter(html)) return null;
 
-        const title = extractTitle(html) ?? new URL(record.original).hostname;
+        const title = extractTitle(html) ?? capturedHost;
         const description = buildDescription(html);
         const hostType = classifyHostType(`${title} ${description} ${record.original}`);
         const thumbnail = resolveThumbnail(html, record.original, record.timestamp);
@@ -56,7 +60,7 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
         const item: Omit<WaybackItem, 'tier'> = {
           url: record.original,
           captureUrl: `https://web.archive.org/web/${record.timestamp}if_/${record.original}`,
-          domain,
+          domain: capturedHost,
           year: captureYear(record.timestamp),
           title,
           description,

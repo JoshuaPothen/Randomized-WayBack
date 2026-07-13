@@ -96,6 +96,57 @@ describe('assembleEdition', () => {
     expect(items.every((item) => !item.url.includes('a.com'))).toBe(true);
   });
 
+  it('stores the real capture host as domain, not the pool root domain', async () => {
+    const fetchCapture = jest.fn(async () => ({
+      urlkey: 'com,tripod,reefdave)/page',
+      timestamp: '19990101000000',
+      original: 'http://reefdave.tripod.com/page',
+      mimetype: 'text/html',
+      statuscode: '200',
+      digest: 'abc',
+      length: '100',
+    }));
+    const fetchCaptureHtml = jest.fn(async () =>
+      htmlFor('page', 'A substantial page with plenty of real readable content for the excerpt. '.repeat(3))
+    );
+
+    const items = await assembleEdition(
+      { fetchCapture, fetchCaptureHtml },
+      { domainPool: ['tripod.com'], oversampleCount: 1, targetMax: 20, midCount: 5 }
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0].domain).toBe('reefdave.tripod.com');
+  });
+
+  it('blocks based on the real capture host, not the pool root domain', async () => {
+    const fetchCapture = jest.fn(async () => ({
+      urlkey: 'com,tripod,reefdave)/page',
+      timestamp: '19990101000000',
+      original: 'http://reefdave.tripod.com/page',
+      mimetype: 'text/html',
+      statuscode: '200',
+      digest: 'abc',
+      length: '100',
+    }));
+    const fetchCaptureHtml = jest.fn(async () =>
+      htmlFor('page', 'A substantial page with plenty of real readable content for the excerpt. '.repeat(3))
+    );
+
+    const items = await assembleEdition(
+      { fetchCapture, fetchCaptureHtml },
+      {
+        domainPool: ['tripod.com'],
+        oversampleCount: 1,
+        targetMax: 20,
+        midCount: 5,
+        blockedDomains: ['reefdave.tripod.com'],
+      }
+    );
+
+    expect(items).toHaveLength(0);
+  });
+
   it('caps the result at targetMax items', async () => {
     const fetchCapture = jest.fn(async (domain: string) => makeRecord(`${domain}-${Math.random()}`));
     const fetchCaptureHtml = jest.fn(async () =>
