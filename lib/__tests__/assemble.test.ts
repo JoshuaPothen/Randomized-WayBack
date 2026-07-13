@@ -56,6 +56,46 @@ describe('assembleEdition', () => {
     expect(items).toEqual([]);
   });
 
+  it('isolates a candidate whose fetchCapture throws, keeping successful candidates', async () => {
+    const domains = ['a.com', 'b.com', 'c.com'];
+
+    const fetchCapture = jest.fn(async (domain: string) => {
+      if (domain === 'a.com') throw new Error('transient network error');
+      return makeRecord(`${domain}-1`);
+    });
+
+    const fetchCaptureHtml = jest.fn(async () =>
+      htmlFor('page', 'A substantial page with plenty of real readable content for the excerpt. '.repeat(3))
+    );
+
+    const items = await assembleEdition(
+      { fetchCapture, fetchCaptureHtml },
+      { domainPool: domains, oversampleCount: 6, targetMax: 20, midCount: 5 }
+    );
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => !item.url.includes('a.com'))).toBe(true);
+  });
+
+  it('isolates a candidate whose fetchCaptureHtml throws, keeping successful candidates', async () => {
+    const domains = ['a.com', 'b.com', 'c.com'];
+
+    const fetchCapture = jest.fn(async (domain: string) => makeRecord(`${domain}-1`));
+
+    const fetchCaptureHtml = jest.fn(async (record: CdxRecord) => {
+      if (record.original.includes('a.com')) throw new Error('timeout fetching html');
+      return htmlFor('page', 'A substantial page with plenty of real readable content for the excerpt. '.repeat(3));
+    });
+
+    const items = await assembleEdition(
+      { fetchCapture, fetchCaptureHtml },
+      { domainPool: domains, oversampleCount: 6, targetMax: 20, midCount: 5 }
+    );
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => !item.url.includes('a.com'))).toBe(true);
+  });
+
   it('caps the result at targetMax items', async () => {
     const fetchCapture = jest.fn(async (domain: string) => makeRecord(`${domain}-${Math.random()}`));
     const fetchCaptureHtml = jest.fn(async () =>

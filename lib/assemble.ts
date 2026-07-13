@@ -39,30 +39,36 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
 
   const candidates = await Promise.all(
     Array.from({ length: oversampleCount }, () => pickRandomDomain(options.domainPool)).map(async (domain) => {
-      const record = await deps.fetchCapture(domain);
-      if (!record) return null;
-      if (isBlocked(record.original, domain)) return null;
+      try {
+        const record = await deps.fetchCapture(domain);
+        if (!record) return null;
+        if (isBlocked(record.original, domain)) return null;
 
-      const html = await deps.fetchCaptureHtml(record);
-      if (!html) return null;
-      if (!passesQualityFilter(html)) return null;
+        const html = await deps.fetchCaptureHtml(record);
+        if (!html) return null;
+        if (!passesQualityFilter(html)) return null;
 
-      const title = extractTitle(html) ?? new URL(record.original).hostname;
-      const description = buildDescription(html);
-      const hostType = classifyHostType(`${title} ${description} ${record.original}`);
-      const thumbnail = resolveThumbnail(html, record.original, record.timestamp);
+        const title = extractTitle(html) ?? new URL(record.original).hostname;
+        const description = buildDescription(html);
+        const hostType = classifyHostType(`${title} ${description} ${record.original}`);
+        const thumbnail = resolveThumbnail(html, record.original, record.timestamp);
 
-      const item: Omit<WaybackItem, 'tier'> = {
-        url: record.original,
-        captureUrl: `https://web.archive.org/web/${record.timestamp}if_/${record.original}`,
-        domain,
-        year: captureYear(record.timestamp),
-        title,
-        description,
-        hostType,
-        thumbnail,
-      };
-      return item;
+        const item: Omit<WaybackItem, 'tier'> = {
+          url: record.original,
+          captureUrl: `https://web.archive.org/web/${record.timestamp}if_/${record.original}`,
+          domain,
+          year: captureYear(record.timestamp),
+          title,
+          description,
+          hostType,
+          thumbnail,
+        };
+        return item;
+      } catch {
+        // A single candidate's failure (network error, timeout, etc.) is dropped
+        // rather than allowed to reject the whole assembleEdition call.
+        return null;
+      }
     })
   );
 
