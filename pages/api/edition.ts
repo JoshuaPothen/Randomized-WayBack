@@ -8,12 +8,13 @@ export async function withOneRetry<T>(fn: () => Promise<T | null>): Promise<T | 
   try {
     const result = await fn();
     if (result !== null) return result;
-  } catch {
-    // fall through to the single retry
+  } catch (err) {
+    console.warn('[withOneRetry] first attempt threw, retrying once', err);
   }
   try {
     return await fn();
-  } catch {
+  } catch (err) {
+    console.warn('[withOneRetry] retry attempt also threw, giving up', err);
     return null;
   }
 }
@@ -40,11 +41,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       { domainPool: DOMAIN_POOL }
     );
     if (items.length === 0) {
+      console.warn('[GET /api/edition] assembleEdition returned zero items');
       res.status(502).json({ error: 'Could not build an edition right now. Try again in a moment.' });
       return;
     }
     res.status(200).json({ items });
-  } catch {
+  } catch (err) {
+    console.error('[GET /api/edition] assembleEdition threw', err);
     res.status(502).json({ error: 'The archive is not responding right now. Try again in a moment.' });
   }
 }

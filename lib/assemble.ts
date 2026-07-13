@@ -43,14 +43,26 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
     Array.from({ length: oversampleCount }, () => pickRandomDomain(options.domainPool)).map(async (domain) => {
       try {
         const record = await deps.fetchCapture(domain);
-        if (!record) return null;
+        if (!record) {
+          console.warn(`[assembleEdition] dropped candidate: no capture found for domain=${domain}`);
+          return null;
+        }
 
         const capturedHost = new URL(record.original).hostname;
-        if (isBlocked(record.original, capturedHost, options.blockedDomains, options.blockedUrlSubstrings)) return null;
+        if (isBlocked(record.original, capturedHost, options.blockedDomains, options.blockedUrlSubstrings)) {
+          console.warn(`[assembleEdition] dropped candidate: blocked host=${capturedHost} url=${record.original}`);
+          return null;
+        }
 
         const html = await deps.fetchCaptureHtml(record);
-        if (!html) return null;
-        if (!passesQualityFilter(html)) return null;
+        if (!html) {
+          console.warn(`[assembleEdition] dropped candidate: no HTML fetched for url=${record.original}`);
+          return null;
+        }
+        if (!passesQualityFilter(html)) {
+          console.warn(`[assembleEdition] dropped candidate: failed quality filter for url=${record.original}`);
+          return null;
+        }
 
         const title = extractTitle(html) ?? capturedHost;
         const description = buildDescription(html);
@@ -68,9 +80,10 @@ export async function assembleEdition(deps: AssembleDeps, options: AssembleOptio
           thumbnail,
         };
         return item;
-      } catch {
+      } catch (err) {
         // A single candidate's failure (network error, timeout, etc.) is dropped
         // rather than allowed to reject the whole assembleEdition call.
+        console.warn(`[assembleEdition] dropped candidate: threw for domain=${domain}`, err);
         return null;
       }
     })
