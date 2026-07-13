@@ -8,7 +8,18 @@ const ENTITY_MAP: Record<string, string> = {
 };
 
 export function decodeEntities(text: string): string {
-  return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;/g, (match) => ENTITY_MAP[match]);
+  return text.replace(
+    /&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;|&#x([0-9a-fA-F]+);|&#(\d+);/g,
+    (match, hexCode, decCode) => {
+      if (hexCode !== undefined) {
+        return String.fromCodePoint(parseInt(hexCode, 16));
+      }
+      if (decCode !== undefined) {
+        return String.fromCodePoint(parseInt(decCode, 10));
+      }
+      return ENTITY_MAP[match];
+    }
+  );
 }
 
 export function stripTags(html: string): string {
@@ -30,12 +41,26 @@ export function extractTitle(html: string): string | null {
   return text.length > 0 ? text : null;
 }
 
+function extractAttributeValue(tag: string, attrName: string): string | null {
+  const re = new RegExp(`${attrName}\\s*=\\s*"([^"]*)"|${attrName}\\s*=\\s*'([^']*)'`, 'i');
+  const match = tag.match(re);
+  if (!match) return null;
+  return match[1] !== undefined ? match[1] : match[2];
+}
+
 export function extractMetaDescription(html: string): string | null {
-  const tagMatch = html.match(/<meta[^>]+name=["']description["'][^>]*>/i);
-  if (!tagMatch) return null;
-  const contentMatch = tagMatch[0].match(/content=["']([^"']*)["']/i);
-  if (!contentMatch) return null;
-  const text = decodeEntities(contentMatch[1]).trim();
+  const metaTags = html.match(/<meta\b[^>]*>/gi);
+  if (!metaTags) return null;
+
+  const descriptionTag = metaTags.find(
+    (tag) => extractAttributeValue(tag, 'name')?.toLowerCase() === 'description'
+  );
+  if (!descriptionTag) return null;
+
+  const content = extractAttributeValue(descriptionTag, 'content');
+  if (content === null) return null;
+
+  const text = decodeEntities(content).trim();
   return text.length > 0 ? text : null;
 }
 

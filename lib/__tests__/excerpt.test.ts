@@ -1,4 +1,4 @@
-import { extractTitle, extractMetaDescription, extractFirstParagraphText, buildDescription, extractVisibleText } from '../excerpt';
+import { extractTitle, extractMetaDescription, extractFirstParagraphText, buildDescription, extractVisibleText, decodeEntities } from '../excerpt';
 
 const SAMPLE_HTML = `
   <html>
@@ -37,6 +37,45 @@ describe('extractMetaDescription', () => {
 
   it('returns null when no meta description exists', () => {
     expect(extractMetaDescription(NO_META_HTML)).toBeNull();
+  });
+
+  it('extracts meta description when content attribute comes before name attribute', () => {
+    const REVERSED_ATTR_HTML = `
+      <html>
+        <head>
+          <title>Reversed Attrs</title>
+          <meta content="A page with reversed attribute order." name="description">
+        </head>
+        <body><p>Some body text.</p></body>
+      </html>
+    `;
+    expect(extractMetaDescription(REVERSED_ATTR_HTML)).toBe('A page with reversed attribute order.');
+  });
+
+  it('extracts meta description with reversed attribute order when the content contains an apostrophe', () => {
+    const REVERSED_ATTR_WITH_APOSTROPHE_HTML = `
+      <html>
+        <head>
+          <meta content="It's a reversed-order description." name="description">
+        </head>
+        <body><p>Some body text.</p></body>
+      </html>
+    `;
+    expect(extractMetaDescription(REVERSED_ATTR_WITH_APOSTROPHE_HTML)).toBe("It's a reversed-order description.");
+  });
+});
+
+describe('decodeEntities', () => {
+  it('decodes numeric decimal character references', () => {
+    expect(decodeEntities('Rock &#8217;n&#8217; Roll')).toBe('Rock ’n’ Roll');
+  });
+
+  it('decodes numeric hex character references', () => {
+    expect(decodeEntities('Caf&#xE9; &#x2014; a great spot')).toBe('Café — a great spot');
+  });
+
+  it('still decodes named entities alongside numeric ones', () => {
+    expect(decodeEntities('Tom &amp; Jerry &#8212; friends')).toBe('Tom & Jerry — friends');
   });
 });
 
