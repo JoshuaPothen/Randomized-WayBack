@@ -147,6 +147,29 @@ describe('assembleEdition', () => {
     expect(items).toHaveLength(0);
   });
 
+  it('never runs more than concurrencyLimit candidates at once', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const fetchCapture = jest.fn(async (domain: string) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return makeRecord(`${domain}-${Math.random()}`);
+    });
+    const fetchCaptureHtml = jest.fn(async () =>
+      htmlFor('page', 'Plenty of substantial readable content here for the quality filter to pass easily. '.repeat(3))
+    );
+
+    await assembleEdition(
+      { fetchCapture, fetchCaptureHtml },
+      { domainPool: ['a.com'], oversampleCount: 20, concurrencyLimit: 4 }
+    );
+
+    expect(maxInFlight).toBeLessThanOrEqual(4);
+  });
+
   it('caps the result at targetMax items', async () => {
     const fetchCapture = jest.fn(async (domain: string) => makeRecord(`${domain}-${Math.random()}`));
     const fetchCaptureHtml = jest.fn(async () =>
