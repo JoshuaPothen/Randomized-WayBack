@@ -10,8 +10,15 @@ export async function getNumPages(domain: string, fetchFn: FetchFn = fetch): Pro
   const res = await fetchFn(url);
   if (!res.ok) throw new Error(`CDX numPages request failed: ${res.status}`);
   const text = (await res.text()).trim();
-  const n = parseInt(text, 10);
-  return Number.isNaN(n) ? 0 : n;
+
+  // showNumPages=true responds with [["numpages"], ["<count>"]], not a bare number.
+  try {
+    const rows: string[][] = JSON.parse(text);
+    const n = parseInt(rows[1]?.[0] ?? '', 10);
+    return Number.isNaN(n) ? 0 : n;
+  } catch {
+    return 0;
+  }
 }
 
 export async function fetchRandomCapture(domain: string, fetchFn: FetchFn = fetch): Promise<CdxRecord | null> {

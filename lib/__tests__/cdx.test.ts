@@ -10,10 +10,10 @@ function mockResponse(body: string, ok = true) {
 }
 
 describe('getNumPages', () => {
-  it('parses the numeric response body', async () => {
-    const fetchFn = jest.fn().mockResolvedValue(mockResponse('7'));
+  it('parses the real CDX showNumPages=true response shape', async () => {
+    const fetchFn = jest.fn().mockResolvedValue(mockResponse(JSON.stringify([['numpages'], ['6357']])));
     const result = await getNumPages('tripod.com', fetchFn);
-    expect(result).toBe(7);
+    expect(result).toBe(6357);
     expect(fetchFn).toHaveBeenCalledWith(expect.stringContaining('showNumPages=true'));
   });
 
@@ -23,7 +23,12 @@ describe('getNumPages', () => {
   });
 
   it('returns 0 for a non-numeric body', async () => {
-    const fetchFn = jest.fn().mockResolvedValue(mockResponse('not-a-number'));
+    const fetchFn = jest.fn().mockResolvedValue(mockResponse(JSON.stringify([['numpages'], ['not-a-number']])));
+    expect(await getNumPages('tripod.com', fetchFn)).toBe(0);
+  });
+
+  it('returns 0 when the response body is malformed JSON', async () => {
+    const fetchFn = jest.fn().mockResolvedValue(mockResponse('not-json-at-all'));
     expect(await getNumPages('tripod.com', fetchFn)).toBe(0);
   });
 });
@@ -37,7 +42,7 @@ describe('fetchRandomCapture', () => {
   it('returns a record from a single-page result', async () => {
     const fetchFn = jest
       .fn()
-      .mockResolvedValueOnce(mockResponse('1')) // getNumPages
+      .mockResolvedValueOnce(mockResponse(JSON.stringify([['numpages'], ['1']]))) // getNumPages
       .mockResolvedValueOnce(mockResponse(JSON.stringify(cdxRows))); // page fetch
 
     const record = await fetchRandomCapture('tripod.com', fetchFn);
@@ -53,14 +58,14 @@ describe('fetchRandomCapture', () => {
   });
 
   it('returns null when there are zero pages', async () => {
-    const fetchFn = jest.fn().mockResolvedValueOnce(mockResponse('0'));
+    const fetchFn = jest.fn().mockResolvedValueOnce(mockResponse(JSON.stringify([['numpages'], ['0']])));
     expect(await fetchRandomCapture('tripod.com', fetchFn)).toBeNull();
   });
 
   it('returns null when the page fetch fails', async () => {
     const fetchFn = jest
       .fn()
-      .mockResolvedValueOnce(mockResponse('1'))
+      .mockResolvedValueOnce(mockResponse(JSON.stringify([['numpages'], ['1']])))
       .mockResolvedValueOnce(mockResponse('', false));
     expect(await fetchRandomCapture('tripod.com', fetchFn)).toBeNull();
   });

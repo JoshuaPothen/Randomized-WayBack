@@ -24,7 +24,7 @@ describe('/api/edition (integration, real assembleEdition)', () => {
       if (url.includes('showNumPages=true')) {
         return {
           ok: true,
-          text: async () => '1',
+          text: async () => JSON.stringify([['numpages'], ['1']]),
         } as Response;
       }
 
