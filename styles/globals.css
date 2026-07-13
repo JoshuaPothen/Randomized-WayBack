@@ -1,0 +1,8 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #1a1a1a;
+  background: #f7f3ea;
+}
+a { color: inherit; text-decoration: none; }
