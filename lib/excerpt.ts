@@ -42,7 +42,11 @@ export function extractTitle(html: string): string | null {
 }
 
 function extractAttributeValue(tag: string, attrName: string): string | null {
-  const re = new RegExp(`${attrName}\\s*=\\s*"([^"]*)"|${attrName}\\s*=\\s*'([^']*)'`, 'i');
+  const boundary = '(?:^|[\\s"\'])';
+  const re = new RegExp(
+    `${boundary}${attrName}\\s*=\\s*"([^"]*)"|${boundary}${attrName}\\s*=\\s*'([^']*)'`,
+    'i'
+  );
   const match = tag.match(re);
   if (!match) return null;
   return match[1] !== undefined ? match[1] : match[2];

@@ -63,6 +63,19 @@ describe('extractMetaDescription', () => {
     `;
     expect(extractMetaDescription(REVERSED_ATTR_WITH_APOSTROPHE_HTML)).toBe("It's a reversed-order description.");
   });
+
+  it('does not mistake a decoy attribute ending in "content" for the real content attribute', () => {
+    const DECOY_ATTR_HTML = `
+      <html>
+        <head>
+          <title>Decoy Attrs</title>
+          <meta name="description" data-content="WRONG" content="RIGHT">
+        </head>
+        <body><p>Some body text.</p></body>
+      </html>
+    `;
+    expect(extractMetaDescription(DECOY_ATTR_HTML)).toBe('RIGHT');
+  });
 });
 
 describe('decodeEntities', () => {
