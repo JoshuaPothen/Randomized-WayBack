@@ -4,15 +4,17 @@ const JUNK_IMAGE_PATTERNS = [/spacer/i, /pixel/i, /blank/i, /button/i, /\bnav/i,
 const MIN_DIMENSION = 40;
 const DEFAULT_COLOR = '#e8e2d0';
 
+const ATTR_BOUNDARY = '(?:^|[\\s"\'])';
+
 function extractDimension(tag: string, attr: 'width' | 'height'): number | null {
-  const match = tag.match(new RegExp(`\\b${attr}=["']?(\\d+)`, 'i'));
+  const match = tag.match(new RegExp(`${ATTR_BOUNDARY}${attr}=["']?(\\d+)`, 'i'));
   return match ? parseInt(match[1], 10) : null;
 }
 
 export function findFirstSuitableImage(html: string): string | null {
   const tags = html.match(/<img\b[^>]*>/gi) ?? [];
   for (const tag of tags) {
-    const srcMatch = tag.match(/\bsrc=["']([^"']+)["']/i);
+    const srcMatch = tag.match(new RegExp(`${ATTR_BOUNDARY}src=["']([^"']+)["']`, 'i'));
     if (!srcMatch) continue;
     const src = srcMatch[1];
     if (JUNK_IMAGE_PATTERNS.some((pattern) => pattern.test(src))) continue;
@@ -31,7 +33,7 @@ function normalizeColor(value: string): string {
 export function extractPageColor(html: string): string | null {
   const bodyMatch = html.match(/<body\b[^>]*>/i);
   if (!bodyMatch) return null;
-  const bgcolorMatch = bodyMatch[0].match(/bgcolor=["']?([^"'\s>]+)/i);
+  const bgcolorMatch = bodyMatch[0].match(new RegExp(`${ATTR_BOUNDARY}bgcolor=["']?([^"'\\s>]+)`, 'i'));
   if (bgcolorMatch) return normalizeColor(bgcolorMatch[1]);
   const styleMatch = bodyMatch[0].match(/style=["']([^"']*)["']/i);
   if (styleMatch) {

@@ -15,6 +15,16 @@ describe('findFirstSuitableImage', () => {
     const html = '<body><img src="spacer.gif" width="1" height="1"></body>';
     expect(findFirstSuitableImage(html)).toBeNull();
   });
+
+  it('does not match a data-src attribute as if it were src', () => {
+    const html = '<img data-src="lazy.jpg" width="200" height="150">';
+    expect(findFirstSuitableImage(html)).toBeNull();
+  });
+
+  it('uses the real width attribute instead of a data-width decoy', () => {
+    const html = '<img src="photo.jpg" data-width="10" width="200" height="150">';
+    expect(findFirstSuitableImage(html)).toBe('photo.jpg');
+  });
 });
 
 describe('extractPageColor', () => {
@@ -30,6 +40,11 @@ describe('extractPageColor', () => {
 
   it('returns null when no color is present', () => {
     const html = '<body>hi</body>';
+    expect(extractPageColor(html)).toBeNull();
+  });
+
+  it('does not match a data-bgcolor attribute as if it were bgcolor', () => {
+    const html = '<body data-bgcolor="#ff0000">hi</body>';
     expect(extractPageColor(html)).toBeNull();
   });
 });
